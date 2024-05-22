@@ -1,0 +1,7 @@
+**__pycache__**
+logs
+outputs
+checkpoints
+music
+quantized
+*.mp3
