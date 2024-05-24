@@ -60,28 +60,10 @@ def train(cfg: OmegaConf):
         overfit_single_batch=cfg.train.overfit_single_batch,
     )
 
-    device = torch.device(cfg.train.device)
+    # device = torch.device(cfg.train.device)
 
     logging.info("Initializing models...")
-    # Download a model
-    dac_path = dac.utils.download(model_type="44khz")
-    teacher = dac.DAC.load(dac_path).to(device)
-
-    var_cfg = VARConfig(
-        latent_size=1024, 
-        cond_size=128,
-        hidden_size=256,
-        scales=[1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048],
-        depth=10,
-    )
-
-    lit_model = LitModel(var_cfg, CosSimLoss(), lr=3e-4, weight_decay=0.001)
-
-
-    logging.info("Optimizers...")
-
-    # setting up optimizer
-    # optimizer = optim.AdamW(model.quantizer.parameters(), lr=cfg.train.lr, weight_decay=cfg.train.weight_decay)
+    lit_model = LitModel(cfg.var, nn.CrossEntropyLoss(), lr=cfg.train.lr, weight_decay=cfg.train.weight_decay)
 
     # checkpoint save path
     num_params_millions = sum([p.numel() for p in lit_model.parameters()]) / 1_000_000
@@ -107,8 +89,7 @@ def train(cfg: OmegaConf):
         logger=logger,
         callbacks=callbacks,
         accelerator="gpu",
-        max_epochs=100,
-        detect_anomaly=True,
+        max_epochs=cfg.train.num_epochs,
     )
 
     trainer.fit(lit_model, train_dataloader)

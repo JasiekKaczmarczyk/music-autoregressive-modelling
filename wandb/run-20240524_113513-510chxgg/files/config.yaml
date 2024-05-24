@@ -1,0 +1,107 @@
+wandb_version: 1
+
+train:
+  desc: null
+  value:
+    dataset_name: music
+    seq_len: 1048576
+    batch_size: 2
+    num_workers: 4
+    lr: 0.0003
+    weight_decay: 0.01
+    num_epochs: 100
+    device: cuda
+    precision: 16-mixed
+    overfit_single_batch: false
+var:
+  desc: null
+  value:
+    latent_size: 72
+    cond_size: 128
+    hidden_size: 256
+    out_size: 1024
+    scales:
+    - 1
+    - 4
+    - 8
+    - 16
+    - 32
+    - 64
+    - 128
+    - 256
+    - 512
+    - 1024
+    - 2048
+    num_spatial_layers: 12
+    num_depth_layers: 8
+    num_heads: 16
+    mlp_ratio: 4.0
+    num_codebooks: 9
+paths:
+  desc: null
+  value:
+    save_ckpt_dir: checkpoints
+    load_ckpt_path: null
+    log_dir: logs
+    hf_repo_id: null
+logger:
+  desc: null
+  value:
+    run_name: run-2024-05-24-11-35
+    log_every_n_steps: 50
+_wandb:
+  desc: null
+  value:
+    python_version: 3.10.4
+    cli_version: 0.16.6
+    framework: huggingface
+    huggingface_version: 4.40.2
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    start_time: 1716543313.0
+    t:
+      1:
+      - 1
+      - 9
+      - 11
+      - 41
+      - 49
+      - 50
+      - 55
+      - 63
+      - 103
+      - 105
+      2:
+      - 1
+      - 9
+      - 11
+      - 41
+      - 49
+      - 50
+      - 55
+      - 63
+      - 103
+      - 105
+      3:
+      - 7
+      - 13
+      - 16
+      - 23
+      4: 3.10.4
+      5: 0.16.6
+      6: 4.40.2
+      8:
+      - 5
+      13: linux-x86_64
+    m:
+    - 1: trainer/global_step
+      6:
+      - 3
+    - 1: train/loss
+      5: 1
+      6:
+      - 1
+    - 1: epoch
+      5: 1
+      6:
+      - 1

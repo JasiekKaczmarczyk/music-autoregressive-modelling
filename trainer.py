@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import pytorch_lightning as pl
 import math
-import einops
+import torchmetrics.functional as M
 from omegaconf import DictConfig
 
 from models.var import VAR, VARConfig
@@ -41,10 +41,10 @@ class LitModel(pl.LightningModule):
     def __init__(self, var_cfg: DictConfig, criterion: nn.Module, lr: float = 3e-4, weight_decay: float = 0.001):
         super().__init__()
 
-        self.model = VAR(**var_cfg)
+        self.model = VAR(**var_cfg).to(self.device)
 
         vae_path = dac.utils.download(model_type="44khz")
-        self.vae = dac.DAC.load(vae_path)
+        self.vae = dac.DAC.load(vae_path).to(self.device)
 
         self.criterion = criterion
         self.lr = lr
@@ -66,18 +66,27 @@ class LitModel(pl.LightningModule):
     
     @torch.no_grad()
     def prepare_batch(self, x: dict[torch.Tensor]):
-        # codes: [B Q L]
         codes = []
-        # latents: [B L Q C]
         latents = []
 
         for scale in x.values():
+            scale = scale.to(self.device)
             scale = self.preprocess(scale)
             _, code, _, _, _= self.vae.encode(scale)
 
-            codes.append(code)
+            _, latent, _ = self.vae.quantizer.from_codes(code)
+            # shape: [B L C]
+            latent = latent.permute(0, 2, 1)
 
-        return codes, latents
+            codes.append(code)
+            latents.append(latent)
+
+        # codes shape: [B Q L]
+        codes = torch.cat(codes, dim=-1)
+        # latents shape: [B L Q*C]
+        latents = torch.cat(latents, dim=1)
+
+        return latents, codes
 
     
     def training_step(self, batch: tuple[dict[torch.Tensor], torch.Tensor], batch_idx: int):
@@ -90,37 +99,44 @@ class LitModel(pl.LightningModule):
         Returns:
             torch.Tensor: loss
         """
-        x, y = batch
-
-        x, _ = self.prepare_batch(x)
-
-        # shape: [B L C]
-        x = x.permute(0, 2, 1)
-        
-        logits = self.model(x, y)
-        logits_wo_start_token = logits[:, 1:, :]
-        # B, L, C = logits_wo_start_token.shape
+        signals, cond = batch
+        cond = cond.to(self.device)
+        latents, codes = self.prepare_batch(signals)
+        logits = self.model(latents, cond)
 
         # loss = self.criterion(logits_wo_start_token.view(-1, C), codes.view(-1))
-        loss = self.criterion(logits_wo_start_token, x)
+        loss = self.criterion(logits.view(-1, self.vae.codebook_size), codes.view(-1))
+        accuracy = (codes == torch.argmax(logits, dim=-1))
 
-        metrics = {"train/loss": loss}
+        metrics = {
+            "train/loss": loss.item(),
+            "train/accuracy": accuracy.item(),
+        }
 
         self.log_dict(metrics)
 
         return loss
 
 if __name__ == "__main__":
-    x = torch.randn((1, 1, 200_000))
-    y = torch.randn((1, 128))
+    from data.dataset import MusicDataset
+    import glob
+    from torch.utils.data import DataLoader
+    ds = glob.glob("music/**.mp3")
 
-    cfg = VARConfig(latent_size=1024, hidden_size=128, cond_size=128, depth=4, num_heads=4)
+    dataset = MusicDataset(ds, length=1_048_576)
+    # sample = dataset[0]
+    loader = DataLoader(dataset, batch_size=8)
 
-    model = LitModel(cfg, criterion=CosSimLoss())
+    signals, y = next(iter(loader))
 
-    # z, idx = model.prepare_batch(x)
+    cfg = VARConfig(latent_size=72, hidden_size=128, cond_size=128, out_size=1024, num_spatial_layers=4, num_depth_layers=4, num_heads=4)
 
-    # print(z.shape)
-    # print(idx.shape)
+    model = LitModel(cfg, criterion=nn.CrossEntropyLoss()).to("cuda")
 
-    print(model.training_step((x, y), 0))
+    # print(codes.shape)
+    # print(latents.shape)
+
+    loss = model.training_step((signals, y), 0)
+    print(loss)
+
+    # print(model.training_step((x, y), 0))
