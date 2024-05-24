@@ -5,3 +5,4 @@ checkpoints
 music
 quantized
 *.mp3
+wandb
