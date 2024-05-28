@@ -4,7 +4,6 @@ import torch.nn.functional as F
 import torch.optim as optim
 import pytorch_lightning as pl
 import math
-import torchmetrics.functional as M
 from omegaconf import DictConfig
 
 from models.var import VAR, VARConfig

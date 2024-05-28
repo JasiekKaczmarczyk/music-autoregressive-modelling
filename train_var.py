@@ -3,23 +3,15 @@ import logging
 import glob
 
 import hydra
-import torch
 import wandb
 import torch.nn as nn
-import dac
-import torch.optim as optim
-import torch.nn.functional as F
-import torchaudio
 import pytorch_lightning as pl
 from pytorch_lightning.loggers.wandb import WandbLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
-
-from tqdm import tqdm
 from omegaconf import OmegaConf
 from torch.utils.data import Subset, DataLoader
 
-from trainer import LitModel, CosSimLoss
-from models.var import VAR, VARConfig
+from trainer import LitModel
 from data.dataset import MusicDataset
 
 def makedir_if_not_exists(dir: str):
@@ -82,7 +74,7 @@ def train(cfg: OmegaConf):
     callbacks = [ModelCheckpoint(
         dirpath=cfg.paths.save_ckpt_dir, 
         filename=f"{cfg.logger.run_name}-params-{num_params_millions:.2f}M.ckpt",
-        every_n_epochs=1,
+        every_n_train_steps=cfg.logger.log_every_n_steps,
     )]
 
     trainer = pl.Trainer(
