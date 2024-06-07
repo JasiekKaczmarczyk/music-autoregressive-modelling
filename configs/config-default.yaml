@@ -3,12 +3,12 @@ hydra:
     chdir: False
 
 train:
-  dataset_name: "music" # huggingface dataset
+  dataset_name: "dataset" # huggingface dataset
   seq_len: 1048576
-  batch_size: 2
+  batch_size: 1
   num_workers: 4
-  lr: 3e-4
-  weight_decay: 0.01
+  lr: 1e-5
+  weight_decay: 0.001
   num_epochs: 100
   device: "cuda"
   precision: "16-mixed" # not implemented yet
@@ -17,7 +17,7 @@ train:
 var:
   latent_size: 72
   cond_size: 128
-  hidden_size: 256
+  hidden_size: 512
   out_size: 1024
   scales: [1, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048]
   num_spatial_layers: 12

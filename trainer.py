@@ -5,6 +5,7 @@ import torch.optim as optim
 import pytorch_lightning as pl
 import math
 from omegaconf import DictConfig
+import einops
 
 from models.var import VAR, VARConfig
 import dac
@@ -103,9 +104,11 @@ class LitModel(pl.LightningModule):
         latents, codes = self.prepare_batch(signals)
         logits = self.model(latents, cond)
 
+        logits = einops.rearrange(logits, "b l q c -> b c q l")
+
         # loss = self.criterion(logits_wo_start_token.view(-1, C), codes.view(-1))
-        loss = self.criterion(logits.view(-1, self.vae.codebook_size), codes.view(-1))
-        accuracy = (codes == torch.argmax(logits, dim=-1))
+        loss = self.criterion(logits, codes)
+        accuracy = (codes == torch.argmax(logits, dim=1)).float().mean()
 
         metrics = {
             "train/loss": loss.item(),

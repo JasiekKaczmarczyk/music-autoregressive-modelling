@@ -6,3 +6,4 @@ music
 quantized
 *.mp3
 wandb
+*.ipynb

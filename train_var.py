@@ -18,9 +18,8 @@ def makedir_if_not_exists(dir: str):
     if not os.path.exists(dir):
         os.makedirs(dir)
 
-
 def preprocess_dataset(dataset_folder: str, seq_len: int, batch_size: int, num_workers: int, *, overfit_single_batch: bool = False):
-    filepaths = glob.glob(f"{dataset_folder}/**.mp3")
+    filepaths = glob.glob(f"{dataset_folder}/**/**.mp3")
 
     train_ds = MusicDataset(filepaths, length=seq_len)
 
